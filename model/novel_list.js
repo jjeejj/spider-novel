@@ -1,23 +1,24 @@
 const Sequelize = require('sequelize');
 
-//小说列表
-var NovelList = global.sequelize.define('novel_list', {
+//小说列表,只显示小说的基本信息及最近更新的信息
+var NovelList = sequelize.define('novel_list', {
     id: {
-        type: Sequelize.STRING(50),
+        type: Sequelize.UUID,
+        defaultValue: Sequelize.UUIDV1,
         primaryKey: true
     },
-    novelName: Sequelize.STRING(100),
-    novelUri: Sequelize.STRING(100),
-    novelId: Sequelize.BOOLEAN,
-    novelLastUpdateChaName: Sequelize.STRING(100),
-    novelLastUpdateChaUri: Sequelize.STRING(100),
-    novelLastUpdateChaId: Sequelize.BOOLEAN,
-    novelLastUpdate: Sequelize.DATE,
-    novelType: Sequelize.STRING(10),
-    novelAuthor: Sequelize.STRING(100),
-    novelAuthorUrl: Sequelize.STRING(100),
+    novel_name: Sequelize.STRING(100),
+    novel_id: Sequelize.INTEGER,
+    novel_last_update_cha_name: Sequelize.STRING(100),
+    novel_last_update_cha_id: Sequelize.INTEGER,
+    novel_last_update: Sequelize.DATE,
+    novel_type: Sequelize.STRING(10),
+    novel_author: Sequelize.STRING(100)
 }, {
-        timestamps: false
-    });
+        underscored: true,
+        freezeTableName: true,
+        tableName: 'novel_list'
+});
+
 
 module.exports = NovelList;

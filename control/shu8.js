@@ -14,7 +14,7 @@ const baseUrl = 'http://23shu8.com';
 const topUrl = baseUrl + /tops/;
 
 /**
- * 获取小说列表
+ * 该方法只获取更新小说列表
  */
 
 const getNovelList = async function(page) {
@@ -35,24 +35,41 @@ const getNovelList = async function(page) {
 			let novelLastUpdate = lis.eq(3).text();
 			let novelType = lis.last().text();
 			let novelAuthor = lis.eq(2).children().first().text();
-			let novelAuthorUrl = lis.eq(2).children().first().attr('href');
+			if(!novelLastUpdateChaId){ //没有更新章节id
+				return; //继续循环下一个
+			};
+			let novels = {
+				novel_name: novelName,
+				novel_id: parseInt(novelId),
+				novel_last_update_cha_name: novelLastUpdateChaName,
+				novel_last_update_cha_id: parseInt(novelLastUpdateChaId),
+				novel_last_update: new Date(novelLastUpdate),
+				novel_type: novelType,
+				novel_author: novelAuthor
+			};
 
 			//判断是否有该小说，没有的话就插入。
-			//若有酒判断是否更新
-			let novelRecos = await NovelList.findAll({
+			//若有判断是否更新
+			let novelRecos = await NovelList.findOne({
+				attributes: ["id","novel_id","novel_last_update_cha_id"],
 				where: {
-					novelId: novelId
+					novel_id: parseInt(novelId)
 				}
 			});
-			if (!novelReco) { //没有记录，直接插入
-				//去更新全部的记录
-				await fetchNewNovelConetnt(novelUri);
+			if (!novelRecos) { //没有记录，直接插入
+				//插入小说基本信息
+				await NovelList.create(novels);
 			} else {
-				let novelReco = novelRecos[0];
-				if (novelReco.novelLastUpdateChaId !== novelLastUpdateChaId) {
-					//小说更新了，去拉去洗新的内容
-					await fetchNewNovelConetnt(novelUri);
-				}
+					//判断是否更新了
+					if(novelRecos.novel_last_update_cha_id != novels.novel_last_update_cha_id){ //更新了
+						novels.updated_at = new Date();
+						await NovelList.update(novels,{
+							where: {
+								novel_id: parseInt(novelId)
+							}
+						});
+					}
+					// await fetchNewNovelConetnt(novelUri);
 			}
 
 		});
@@ -76,11 +93,11 @@ const getNovelList = async function(page) {
 /**
  * 获取小说具体章节及内容
  * @param  {[type]} novelUri 小说id 对应的uri
- * @return 
+ * @return
  */
-const fetchNewNovelConetnt = async function(novelUri) {
+const getNewNovelConetnt = async function(novelUri) {
 	let novelUrl = baseUrl + novelUri,
-		res,$,lis，mongoConn,novelContent,chaContent;
+		res,$,lis,mongoConn,novelContent,chaContent;
 	try {
 		mongoConn = await connect.getMongoConn();
 
@@ -92,7 +109,7 @@ const fetchNewNovelConetnt = async function(novelUri) {
 		$ = cheerio.load(res.text);
 		lis = $('ul.catalogs').find('li');
 		if(!lis || lis.length <=0){
-			console.log('获取该小说有问题,'novelUri);
+			console.log('获取该小说有问题,',novelUri);
 			return;
 		};
 
@@ -113,8 +130,6 @@ const fetchNewNovelConetnt = async function(novelUri) {
 			};
 			chaContent  = await request.get(baseUrl + chaIdUri).charset('gbk'); //内容
 
-
-
 		};
 
 	} catch (err) {
@@ -122,7 +137,7 @@ const fetchNewNovelConetnt = async function(novelUri) {
 	}
 };
 
-getNovelList(1);
+// const
 
 
-module.exports = getNovelList;
+module.exports = {getNovelList};
