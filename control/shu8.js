@@ -23,8 +23,10 @@ const getNovelList = async function(page = 1) {
 		$ = cheerio.load(res.text);
 
 		//处理这一页的小说数据
-		$('ul.content').each(async function(index, element) {
-			let lis = $(this).find('li');
+		// $('ul.content').each(async function(index, element) {
+		for(let i = 0; i<$('ul.content').length;i++){
+			let lis = $('ul.content').eq(i).find('li');
+			// let lis = $(this).find('li');
 			let novelUri = lis.eq(0).children().first().attr('href');
 			let novelName = lis.eq(0).children().first().text();
 			let novelId = novelUri.split('\/')[1];
@@ -77,8 +79,9 @@ const getNovelList = async function(page = 1) {
 					// await fetchNewNovelConetnt(novelUri);
 			};
 
-			await sleep(5);
-		});
+			await sleep(2);
+		}
+		// });
 		//获取当前页码出来的最大页数
 		let bigPageNum = $('#pagenav').children().last().text();
 		if (page >= Number(bigPageNum)) {
@@ -118,6 +121,7 @@ const getNewNovelConetnt = async function(novelId,novelChaId) {
 
 		//获取该内容所属于的小说id
 		let contentNovelId = $('div.weizhi').find('a').eq(1).attr('href').split('\/')[1];
+		console.log('contentNovelId novelId' ,contentNovelId,novelId)
 		if(contentNovelId == novelId){ //归属正确,进行内容存取
 			chaTitle = $('div#contents>div.catalog_h1').find('h1').eq(0).text();
 			chaContent = $('div#content').text();
@@ -134,9 +138,9 @@ const getNewNovelConetnt = async function(novelId,novelChaId) {
 				cha_content: chaContent
 			},{upsert: true});
 
-			console.log(`更新 ${novelId},${novelChaId}结束`);
+			console.log(`插入 ${novelId},${novelChaId}结束`);
 		};
-
+		console.log(`更新 ${novelId},${novelChaId}结束`);
 	} catch (err) {
 			throw(err)
 	}
@@ -158,21 +162,23 @@ const checkGetNewNovelConetnt = async function (novelId,novelLastUpdateChaId) {
 
 		shu8NovelDbStats = await shu8NovelDb.stats();
 
-		console.log('shu8NovelDbStats',shu8NovelDbStats)
+		// console.log('shu8NovelDbStats',shu8NovelDbStats)
 
 		if(shu8NovelDbStats.ok == 0){ //没有该小说集合,去单独获取该小说章节页面
 			let res = await request.get(baseUrl + `/${novelId}/`).charset('gbk');
 			let $ = cheerio.load(res.text);
-			$('ul.catalogs li').each(async function (index, element) {
-				let aDoms = $(this).find('a');
+			// $('ul.catalogs li').each(async function (index, element) {
+			for(let i=0;i<$('ul.catalogs li').length;i++){
+				let aDoms = $('ul.catalogs li').eq(i).find('a');
 				if(aDoms && aDoms.length > 0){ //是内容章节
 					//获取每个章节的id,然后去获取内容
 					let chaId = aDoms.eq(0).attr('href').split('\/')[2];
 					await getNewNovelConetnt(novelId,chaId);
 				};
 				//等待 1s中
-				await sleep(5);
-			});
+				await sleep(2);
+			}
+			// });
 		}else{ //存在该小说集合,更新需要更新的章节
 			//获取 mongo 已经存在的最大 id 章节
 			let existLastNovelConetent = await shu8NovelDb.findOne({novel_id:novelId},{sort:{"novel_cha_id":-1}});
